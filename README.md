@@ -1,8 +1,8 @@
 # Form Request Validation for Filament
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/occ-therapist/form-request-validation-for-filament.svg?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
-[![Total Downloads](https://img.shields.io/packagist/dt/occ-therapist/form-request-validation-for-filament.svg?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
-[![License](https://img.shields.io/packagist/l/occ-therapist/form-request-validation-for-filament.svg?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
+[![Latest Version on Packagist](https://img.shields.io/github/v/release/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
+[![Total Downloads](https://img.shields.io/packagist/dt/occ-therapist/form-request-validation-for-filament?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
+[![License](https://img.shields.io/github/license/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://github.com/OccTherapist/form-request-validation-for-filament)
 
 ![Form Request Validation for Filament](thumbnail.jpg)
