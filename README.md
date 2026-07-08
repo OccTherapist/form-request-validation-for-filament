@@ -279,6 +279,88 @@ Schema::formRequest()
 3. Rules are mapped to fields by name and applied through Filament's native validation pipeline.
 4. Errors appear on the matching input fields; orphan errors trigger a notification.
 
+## Action modals
+
+Attach a Form Request directly to an action form schema:
+
+```php
+use Filament\Actions\Action;
+
+Action::make('invite')
+    ->schema(fn (Schema $schema) => $schema
+        ->components([
+            TextInput::make('email'),
+            TextInput::make('role'),
+        ])
+        ->formRequest(
+            class: fn () => InviteUserRequest::class,
+        ))
+    ->action(function (array $data): void {
+        // ...
+    });
+```
+
+Action forms use Livewire state paths like `mountedActions.0.data.email` internally — the plugin normalizes these automatically.
+
+## Wizards
+
+Define one Form Request for the entire wizard and attach it to the root schema:
+
+```php
+Wizard::make([
+    Step::make('Account')->schema([
+        TextInput::make('email'),
+    ]),
+    Step::make('Profile')->schema([
+        TextInput::make('name'),
+    ]),
+])
+```
+
+```php
+return $schema
+    ->components([/* wizard */])
+    ->formRequest(class: fn () => StoreUserRequest::class);
+```
+
+On each step, **only the fields in the active step** are validated. Rules for later steps are ignored until the full form is submitted.
+
+If your Form Request needs data from other steps during validation, use `mergeInput`:
+
+```php
+->formRequest(
+    class: fn () => StoreUserRequest::class,
+    mergeInput: fn (array $state, Component $livewire): array => [
+        ...($livewire->data ?? []),
+        ...$state,
+    ],
+)
+```
+
+## Relation managers
+
+Relation manager create/edit actions use the same schema API as resource pages:
+
+```php
+class PostsRelationManager extends RelationManager
+{
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                TextInput::make('title'),
+            ])
+            ->formRequest(
+                class: fn () => $this->getOwnerRecord()->exists
+                    ? UpdatePostRequest::class
+                    : StorePostRequest::class,
+            );
+    }
+}
+```
+
+For modal actions on the relation manager table, attach `formRequest()` inside the action schema callback.
+
 ## What is not supported (yet)
 
 The following Form Request features are **not** part of v1:
@@ -299,9 +381,9 @@ The following Form Request features are **not** part of v1:
 |---|---|
 | Resource Create / Edit pages | v1.0 |
 | Standalone forms / Settings pages | v1.0 |
-| Action modals | v1.1 (planned) |
-| Wizards (per-step validation) | v1.1 (planned) |
-| Relation managers | v1.1 (planned) |
+| Action modals | v1.1 |
+| Wizards (per-step validation) | v1.1 |
+| Relation managers | v1.1 |
 | Table filters | v1.2 (planned) |
 
 ## Testing

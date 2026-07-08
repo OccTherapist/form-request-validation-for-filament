@@ -27,7 +27,7 @@ class FormRequestValidationComponentHook extends ComponentHook
             return;
         }
 
-        $config = FormRequestSchemaRegistry::get($schema);
+        $config = FormRequestSchemaRegistry::resolve($schema);
 
         if ($config === null) {
             return;

@@ -1,9 +1,10 @@
 <?php
 
 use OccTherapist\FormRequestValidationForFilament\RuleMapper;
+use OccTherapist\FormRequestValidationForFilament\StatePathNormalizer;
 
 it('maps rules by exact field name', function () {
-    $mapper = new RuleMapper;
+    $mapper = new RuleMapper(new StatePathNormalizer);
 
     $result = $mapper->map(
         ['email' => ['required', 'email']],
@@ -15,7 +16,7 @@ it('maps rules by exact field name', function () {
 });
 
 it('maps rules using wildcard patterns', function () {
-    $mapper = new RuleMapper;
+    $mapper = new RuleMapper(new StatePathNormalizer);
 
     $result = $mapper->map(
         ['items.*.name' => ['required', 'string']],
@@ -28,7 +29,7 @@ it('maps rules using wildcard patterns', function () {
 });
 
 it('maps rules defined as pipe-separated strings', function () {
-    $mapper = new RuleMapper;
+    $mapper = new RuleMapper(new StatePathNormalizer);
 
     $result = $mapper->map(
         ['email' => 'required|email|max:255'],
@@ -38,8 +39,20 @@ it('maps rules defined as pipe-separated strings', function () {
     expect($result['matched']['data.email'])->toBe(['required', 'email', 'max:255']);
 });
 
+it('maps rules for mounted action form fields', function () {
+    $mapper = new RuleMapper(new StatePathNormalizer);
+
+    $result = $mapper->map(
+        ['title' => ['required', 'string']],
+        ['mountedActions.0.data.title'],
+    );
+
+    expect($result['matched']['mountedActions.0.data.title'])->toBe(['required', 'string'])
+        ->and($result['orphans'])->toBeEmpty();
+});
+
 it('returns orphan rules without matching fields', function () {
-    $mapper = new RuleMapper;
+    $mapper = new RuleMapper(new StatePathNormalizer);
 
     $result = $mapper->map(
         [
@@ -54,8 +67,9 @@ it('returns orphan rules without matching fields', function () {
 });
 
 it('strips common state prefixes from field paths', function () {
-    $mapper = new RuleMapper;
+    $mapper = new RuleMapper(new StatePathNormalizer);
 
     expect($mapper->toRelativePath('data.email'))->toBe('email')
+        ->and($mapper->toRelativePath('mountedActions.0.data.email'))->toBe('email')
         ->and($mapper->toRelativePath('mountedActionsData.title'))->toBe('title');
 });

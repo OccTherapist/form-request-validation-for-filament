@@ -28,7 +28,7 @@ class FormRequestValidationHook extends Hidden
         $this->resolvedValidation = null;
 
         $schema = $this->resolveSchema();
-        $config = FormRequestSchemaRegistry::get($schema);
+        $config = FormRequestSchemaRegistry::resolve($schema);
 
         if ($config === null) {
             return;
@@ -41,6 +41,10 @@ class FormRequestValidationHook extends Hidden
             $rules[$statePath] = $merger->merge($rules[$statePath] ?? [], $formRequestRules);
         }
 
+        if (! FormRequestSchemaRegistry::shouldValidateOrphans($schema)) {
+            return;
+        }
+
         foreach ($resolved->orphanRules as $orphanKey => $orphanRules) {
             $rules[$orphanKey] = $orphanRules;
         }
@@ -49,7 +53,7 @@ class FormRequestValidationHook extends Hidden
     public function dehydrateValidationMessages(array &$messages): void
     {
         $schema = $this->resolveSchema();
-        $config = FormRequestSchemaRegistry::get($schema);
+        $config = FormRequestSchemaRegistry::resolve($schema);
 
         if ($config === null) {
             return;
@@ -61,6 +65,10 @@ class FormRequestValidationHook extends Hidden
             $messages[$key] = $message;
         }
 
+        if (! FormRequestSchemaRegistry::shouldValidateOrphans($schema)) {
+            return;
+        }
+
         foreach ($resolved->orphanMessages as $key => $message) {
             $messages[$key] = $message;
         }
@@ -69,7 +77,7 @@ class FormRequestValidationHook extends Hidden
     public function dehydrateValidationAttributes(array &$attributes): void
     {
         $schema = $this->resolveSchema();
-        $config = FormRequestSchemaRegistry::get($schema);
+        $config = FormRequestSchemaRegistry::resolve($schema);
 
         if ($config === null) {
             return;
@@ -79,6 +87,10 @@ class FormRequestValidationHook extends Hidden
 
         foreach ($resolved->attributes as $key => $attribute) {
             $attributes[$key] = $attribute;
+        }
+
+        if (! FormRequestSchemaRegistry::shouldValidateOrphans($schema)) {
+            return;
         }
 
         foreach ($resolved->orphanAttributes as $key => $attribute) {

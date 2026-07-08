@@ -6,6 +6,10 @@ use Illuminate\Support\Str;
 
 class RuleMapper
 {
+    public function __construct(
+        protected StatePathNormalizer $statePathNormalizer,
+    ) {}
+
     /**
      * @param  array<string, array<int|string, mixed>|string>  $formRequestRules
      * @param  array<int, string>  $fieldPaths
@@ -77,9 +81,6 @@ class RuleMapper
 
     public function toRelativePath(string $statePath): string
     {
-        return (string) Str::of($statePath)
-            ->replaceFirst('data.', '')
-            ->replaceFirst('mountedActionsData.', '')
-            ->replaceFirst('mountedFormComponentActionsData.', '');
+        return $this->statePathNormalizer->toRelativePath($statePath);
     }
 }

@@ -7,6 +7,7 @@ use Filament\Schemas\Schema;
 use OccTherapist\FormRequestValidationForFilament\Components\FormRequestValidationHook;
 use OccTherapist\FormRequestValidationForFilament\FormRequestConfig;
 use OccTherapist\FormRequestValidationForFilament\FormRequestSchemaRegistry;
+use OccTherapist\FormRequestValidationForFilament\SchemaHookPropagator;
 use ReflectionProperty;
 
 class FilamentSchemaValidatorAdapter implements SchemaValidatorAdapter
@@ -22,7 +23,9 @@ class FilamentSchemaValidatorAdapter implements SchemaValidatorAdapter
 
             FormRequestSchemaRegistry::attach($schema, new FormRequestConfig($class, $mergeInput));
 
-            app(FilamentSchemaValidatorAdapter::class)->ensureValidationHook($schema);
+            $adapter = app(FilamentSchemaValidatorAdapter::class);
+            $adapter->ensureValidationHook($schema);
+            app(SchemaHookPropagator::class)->propagate($schema);
 
             return $schema;
         });

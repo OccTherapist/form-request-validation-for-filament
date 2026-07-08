@@ -42,7 +42,53 @@ class FormRequestSchemaRegistry
 
     public static function get(Schema $schema): ?FormRequestConfig
     {
-        return static::$configs[$schema] ?? null;
+        return static::resolve($schema);
+    }
+
+    public static function resolve(Schema $schema): ?FormRequestConfig
+    {
+        if (isset(static::$configs[$schema])) {
+            return static::$configs[$schema];
+        }
+
+        $component = $schema->getParentComponent();
+
+        while ($component !== null) {
+            $container = $component->getContainer();
+
+            if ($container instanceof Schema && isset(static::$configs[$container])) {
+                return static::$configs[$container];
+            }
+
+            $component = $container instanceof Schema
+                ? $container->getParentComponent()
+                : null;
+        }
+
+        return null;
+    }
+
+    public static function shouldValidateOrphans(Schema $schema): bool
+    {
+        if (isset(static::$configs[$schema])) {
+            return $schema->isRoot();
+        }
+
+        $component = $schema->getParentComponent();
+
+        while ($component !== null) {
+            $container = $component->getContainer();
+
+            if ($container instanceof Schema && isset(static::$configs[$container])) {
+                return $container->isRoot() && $schema === $container;
+            }
+
+            $component = $container instanceof Schema
+                ? $container->getParentComponent()
+                : null;
+        }
+
+        return $schema->isRoot();
     }
 
     public static function markHookAttached(Schema $schema): void
