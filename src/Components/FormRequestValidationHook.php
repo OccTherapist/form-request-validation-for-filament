@@ -12,8 +12,6 @@ use OccTherapist\FormRequestValidationForFilament\RuleMerger;
 
 class FormRequestValidationHook extends Hidden
 {
-    protected ?Schema $formRequestSchema = null;
-
     protected ?ResolvedFormRequestValidation $resolvedValidation = null;
 
     protected function setUp(): void
@@ -23,13 +21,6 @@ class FormRequestValidationHook extends Hidden
         $this->dehydrated(false);
         $this->hiddenLabel();
         $this->validatedWhenNotDehydrated(true);
-    }
-
-    public function schema(Schema $schema): static
-    {
-        $this->formRequestSchema = $schema;
-
-        return $this;
     }
 
     public function dehydrateValidationRules(array &$rules): void
@@ -97,10 +88,6 @@ class FormRequestValidationHook extends Hidden
 
     protected function resolveSchema(): Schema
     {
-        if ($this->formRequestSchema instanceof Schema) {
-            return $this->formRequestSchema;
-        }
-
         $container = $this->getContainer();
 
         if ($container instanceof Schema) {

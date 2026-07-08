@@ -50,7 +50,7 @@ class FilamentSchemaValidatorAdapter implements SchemaValidatorAdapter
                 fn (mixed $component): bool => ! $component instanceof FormRequestValidationHook,
             ));
 
-            $components[] = FormRequestValidationHook::make('_form_request_validation_hook')->schema($schema);
+            $components[] = FormRequestValidationHook::make('_form_request_validation_hook');
 
             return $components;
         });
