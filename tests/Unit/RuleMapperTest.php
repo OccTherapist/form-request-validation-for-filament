@@ -27,6 +27,17 @@ it('maps rules using wildcard patterns', function () {
         ->and($result['orphans'])->toBeEmpty();
 });
 
+it('maps rules defined as pipe-separated strings', function () {
+    $mapper = new RuleMapper;
+
+    $result = $mapper->map(
+        ['email' => 'required|email|max:255'],
+        ['data.email'],
+    );
+
+    expect($result['matched']['data.email'])->toBe(['required', 'email', 'max:255']);
+});
+
 it('returns orphan rules without matching fields', function () {
     $mapper = new RuleMapper;
 

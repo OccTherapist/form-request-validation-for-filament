@@ -24,6 +24,12 @@ it('deduplicates identical rules', function () {
     expect($merged)->toBe(['required', 'email', 'max:255']);
 });
 
+it('normalizes pipe-separated rule strings', function () {
+    $merger = new RuleMerger;
+
+    expect($merger->normalize('required|email|max:255'))->toBe(['required', 'email', 'max:255']);
+});
+
 it('normalizes associative rule arrays', function () {
     $merger = new RuleMerger;
 

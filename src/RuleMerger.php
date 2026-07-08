@@ -3,15 +3,16 @@
 namespace OccTherapist\FormRequestValidationForFilament;
 
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationRuleParser;
 
 class RuleMerger
 {
     /**
-     * @param  array<int|string, mixed>  $fieldRules
-     * @param  array<int|string, mixed>  $formRequestRules
+     * @param  array<int|string, mixed>|string  $fieldRules
+     * @param  array<int|string, mixed>|string  $formRequestRules
      * @return array<int, mixed>
      */
-    public function merge(array $fieldRules, array $formRequestRules): array
+    public function merge(array|string $fieldRules, array|string $formRequestRules): array
     {
         $normalizedFieldRules = $this->normalize($fieldRules);
         $normalizedFormRequestRules = $this->normalize($formRequestRules);
@@ -27,11 +28,17 @@ class RuleMerger
     }
 
     /**
-     * @param  array<int|string, mixed>  $rules
+     * @param  array<int|string, mixed>|string  $rules
      * @return array<int, mixed>
      */
-    public function normalize(array $rules): array
+    public function normalize(array|string $rules): array
     {
+        if (is_string($rules)) {
+            $parsed = (new ValidationRuleParser([]))->explode(['__field' => $rules]);
+
+            return array_values($parsed->rules['__field'] ?? []);
+        }
+
         if ($rules === []) {
             return [];
         }
