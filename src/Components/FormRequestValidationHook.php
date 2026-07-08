@@ -16,11 +16,6 @@ class FormRequestValidationHook extends Hidden
 
     protected ?ResolvedFormRequestValidation $resolvedValidation = null;
 
-    public static function make(string $name = '_form_request_validation_hook'): static
-    {
-        return app(static::class, ['name' => $name]);
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
