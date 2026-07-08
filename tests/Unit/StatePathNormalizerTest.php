@@ -27,3 +27,12 @@ it('detects mounted action paths', function () {
     expect($normalizer->isMountedActionPath('mountedActions.0.data.email'))->toBeTrue()
         ->and($normalizer->isMountedActionPath('data.email'))->toBeFalse();
 });
+
+it('detects table filter paths', function () {
+    $normalizer = new StatePathNormalizer;
+
+    expect($normalizer->isTableFilterPath('tableFilters.status'))->toBeTrue()
+        ->and($normalizer->isTableFilterPath('tableDeferredFilters.created.from'))->toBeTrue()
+        ->and($normalizer->toRelativePath('tableFilters.created.from'))->toBe('created.from')
+        ->and($normalizer->toRelativePath('tableDeferredFilters.status'))->toBe('status');
+});

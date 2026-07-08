@@ -41,4 +41,10 @@ class StatePathNormalizer
         return Str::startsWith($statePath, 'mountedActions.')
             || Str::startsWith($statePath, 'mountedFormComponentActions.');
     }
+
+    public function isTableFilterPath(string $statePath): bool
+    {
+        return Str::startsWith($statePath, 'tableFilters.')
+            || Str::startsWith($statePath, 'tableDeferredFilters.');
+    }
 }

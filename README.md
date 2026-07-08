@@ -361,6 +361,45 @@ class PostsRelationManager extends RelationManager
 
 For modal actions on the relation manager table, attach `formRequest()` inside the action schema callback.
 
+## Table filters
+
+Attach a Form Request to your table filters using `filtersFormRequest()` on the table configuration:
+
+```php
+use Filament\Tables\Table;
+
+public function table(Table $table): Table
+{
+    return $table
+        ->filters([
+            Filter::make('created')
+                ->schema([
+                    DatePicker::make('from'),
+                    DatePicker::make('until'),
+                ]),
+        ])
+        ->filtersFormRequest(
+            class: fn () => FilterCustomersRequest::class,
+        );
+}
+```
+
+```php
+// app/Http/Requests/FilterCustomersRequest.php
+public function rules(): array
+{
+    return [
+        'created.from' => ['nullable', 'date'],
+        'created.until' => ['nullable', 'date', 'after_or_equal:created.from'],
+    ];
+}
+```
+
+Filter fields use state paths like `tableDeferredFilters.{filterName}.{field}` — the plugin normalizes these automatically.
+
+- **Deferred filters** (default): validation runs when the user clicks **Apply**
+- **Live filters** (`->deferFilters(false)`): validation runs when filter values change
+
 ## What is not supported (yet)
 
 The following Form Request features are **not** part of v1:
@@ -384,7 +423,7 @@ The following Form Request features are **not** part of v1:
 | Action modals | v1.1 |
 | Wizards (per-step validation) | v1.1 |
 | Relation managers | v1.1 |
-| Table filters | v1.2 (planned) |
+| Table filters | v1.2 |
 
 ## Testing
 

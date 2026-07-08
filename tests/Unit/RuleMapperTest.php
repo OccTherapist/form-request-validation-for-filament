@@ -51,6 +51,17 @@ it('maps rules for mounted action form fields', function () {
         ->and($result['orphans'])->toBeEmpty();
 });
 
+it('maps rules for table filter fields', function () {
+    $mapper = new RuleMapper(new StatePathNormalizer);
+
+    $result = $mapper->map(
+        ['created_from' => ['required', 'date']],
+        ['tableDeferredFilters.created.created_from'],
+    );
+
+    expect($result['matched']['tableDeferredFilters.created.created_from'])->toBe(['required', 'date']);
+});
+
 it('returns orphan rules without matching fields', function () {
     $mapper = new RuleMapper(new StatePathNormalizer);
 
