@@ -7,26 +7,37 @@
 
 ![Form Request Validation for Filament](thumbnail.jpg)
 
-Use Laravel [Form Request](https://laravel.com/docs/validation#form-request-validation) validation inside Filament schemas. Define your rules, messages, and attributes once — reuse them across API routes, controllers, and Filament forms.
+Use Laravel [Form Request](https://laravel.com/docs/validation#form-request-validation) validation inside Filament — define your rules, messages, and attributes once, reuse them across API routes, controllers, and Filament UI.
 
 ## Why this plugin?
 
 Filament validates fields through dedicated methods like `->required()` and `->email()` on each input. That works well for simple forms, but validation logic often belongs in a central place — especially when the same rules already exist in a Form Request.
 
-This plugin bridges that gap: attach a Form Request to your schema and its validation rules are automatically applied to the matching fields.
+This plugin bridges that gap: attach a Form Request to your schema or table filters and its validation rules are automatically applied to the matching fields.
 
 ## Features
 
-- **Form Request integration** — uses `rules()`, `messages()`, and `attributes()` from your existing Form Requests
-- **Automatic field mapping** — matches rules to fields by name (`email` → `TextInput::make('email')`)
-- **Wildcard support** — maps nested rules like `items.*.name` to repeater children
-- **Context-aware** — choose different Form Requests per page (create vs. edit) via callback
-- **Dynamic rules** — rules are re-resolved on every validation, so `required_if` and similar rules work with live form state
-- **Request simulation** — provides route parameters and input context to Form Requests (e.g. `Rule::unique()->ignore($this->route('user'))`)
-- **Smart rule merging** — combines existing field rules with Form Request rules; Form Request wins on conflicts
-- **Orphan rule handling** — rules without a matching field still run on submit; failures show a Filament notification
-- **Validated data helper** — optional `getFormRequestValidated()` after successful validation
-- **Filament 4 & 5** — single package with an internal adapter layer
+- **Form Request integration** — `rules()`, `messages()`, and `attributes()`
+- **Automatic field mapping** — by field name, dot notation, and wildcards (`items.*.name`)
+- **Array & pipe syntax** — `'email' => ['required', 'email']` and `'email' => 'required|email'`
+- **Context-aware** — different Form Requests per page via callback (create vs. edit)
+- **Dynamic rules** — re-resolved on every validation (`required_if`, `Rule::unique()`, etc.)
+- **Request simulation** — route parameters and input context for Form Requests
+- **Smart rule merging** — Form Request rules take precedence on conflicts
+- **Orphan rule handling** — unmatched rules show a Filament notification
+- **`getFormRequestValidated()`** — optional helper trait for validated data
+- **Filament 4 & 5** — single package, internal adapter layer
+
+## Supported contexts
+
+| Context | API |
+|---|---|
+| Resource Create / Edit | `Schema::formRequest()` |
+| Standalone forms / Settings pages | `Schema::formRequest()` |
+| Action modals | `Schema::formRequest()` |
+| Wizards (per-step validation) | `Schema::formRequest()` |
+| Relation managers | `Schema::formRequest()` |
+| Table filters | `Table::filtersFormRequest()` |
 
 ## Requirements
 
@@ -42,7 +53,7 @@ This plugin bridges that gap: attach a Form Request to your schema and its valid
 composer require occ-therapist/form-request-validation-for-filament
 ```
 
-The package auto-registers via Laravel's package discovery. No manual service provider setup required.
+Auto-registers via Laravel package discovery. No manual setup required.
 
 ## Quick start
 
@@ -95,7 +106,7 @@ public function form(Schema $schema): Schema
     return $schema
         ->components([
             TextInput::make('name'),
-            TextInput::make('email')->email(),
+            TextInput::make('email'),
         ])
         ->formRequest(
             class: fn () => $this instanceof EditRecord
@@ -105,9 +116,9 @@ public function form(Schema $schema): Schema
 }
 ```
 
-> **Important:** Call `->formRequest()` **after** `->components()` so the internal validation hook is appended correctly.
+> **Important:** Call `->formRequest()` **after** `->components()` so the validation hook is appended correctly.
 
-Validation errors appear directly on the matching input fields, just like native Filament validation.
+Validation errors appear directly on the matching input fields.
 
 ## API reference
 
@@ -122,12 +133,10 @@ $schema->formRequest(
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `class` | `Closure` | Yes | Returns the Form Request class for the current context. Receives `$livewire` via dependency injection. |
-| `mergeInput` | `Closure` | No | Merges additional data into the simulated request input before rules are resolved. Receives `$state` and `$livewire`. |
+| `class` | `Closure` | Yes | Returns the Form Request class. Receives `$livewire` via dependency injection. |
+| `mergeInput` | `Closure` | No | Merges additional data into the simulated request input. Receives `$state` and `$livewire`. |
 
-#### `class` callback
-
-Use this to select the right Form Request depending on the page or context:
+#### Context selection
 
 ```php
 ->formRequest(
@@ -139,9 +148,7 @@ Use this to select the right Form Request depending on the page or context:
 )
 ```
 
-#### `mergeInput` callback
-
-Some Form Requests rely on data that is not part of the visible form state. Use `mergeInput` to enrich the simulated request:
+#### Enriching input data
 
 ```php
 ->formRequest(
@@ -154,47 +161,153 @@ Some Form Requests rely on data that is not part of the visible form state. Use 
 )
 ```
 
-This is useful for:
+Useful when Form Requests depend on record data, route parameters, or values not visible in the form.
 
-- Fields stored on the record but not shown in the form
-- Route-like parameters needed by `Rule::unique()->ignore($this->route('user'))`
-- Conditional rules that depend on values outside the form
+### `Table::filtersFormRequest()`
+
+```php
+$table->filtersFormRequest(
+    class: fn () => FilterCustomersRequest::class,
+    mergeInput: fn (array $state, Component $livewire): array => $state,
+);
+```
+
+Same parameters as `Schema::formRequest()`. Attaches validation to the table's filter form.
+
+| Filter mode | When validation runs |
+|---|---|
+| Deferred (default) | When the user clicks **Apply** |
+| Live (`->deferFilters(false)`) | On every filter change |
+
+## Usage by context
+
+### Resource pages
+
+```php
+public function form(Schema $schema): Schema
+{
+    return $schema
+        ->components([/* fields */])
+        ->formRequest(class: fn () => StoreUserRequest::class);
+}
+```
+
+### Action modals
+
+```php
+Action::make('invite')
+    ->schema(fn (Schema $schema) => $schema
+        ->components([
+            TextInput::make('email'),
+            TextInput::make('role'),
+        ])
+        ->formRequest(class: fn () => InviteUserRequest::class))
+    ->action(function (array $data): void {
+        // ...
+    });
+```
+
+### Wizards
+
+One Form Request for the entire wizard — attach it to the root schema:
+
+```php
+return $schema
+    ->components([
+        Wizard::make([
+            Step::make('Account')->schema([
+                TextInput::make('email'),
+            ]),
+            Step::make('Profile')->schema([
+                TextInput::make('name'),
+            ]),
+        ]),
+    ])
+    ->formRequest(class: fn () => StoreUserRequest::class);
+```
+
+Only fields in the **active step** are validated per step. Use `mergeInput` if rules depend on data from other steps:
+
+```php
+mergeInput: fn (array $state, Component $livewire): array => [
+    ...($livewire->data ?? []),
+    ...$state,
+],
+```
+
+### Relation managers
+
+```php
+class PostsRelationManager extends RelationManager
+{
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                TextInput::make('title'),
+            ])
+            ->formRequest(class: fn () => StorePostRequest::class);
+    }
+}
+```
+
+For modal actions on the table, attach `formRequest()` inside the action's schema callback.
+
+### Table filters
+
+```php
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Table;
+
+public function table(Table $table): Table
+{
+    return $table
+        ->filters([
+            Filter::make('created')
+                ->schema([
+                    DatePicker::make('from'),
+                    DatePicker::make('until'),
+                ]),
+        ])
+        ->filtersFormRequest(class: fn () => FilterCustomersRequest::class);
+}
+```
+
+```php
+// app/Http/Requests/FilterCustomersRequest.php
+public function rules(): array
+{
+    return [
+        'created.from' => ['nullable', 'date'],
+        'created.until' => ['nullable', 'date', 'after_or_equal:created.from'],
+    ];
+}
+```
 
 ## Field mapping
 
-Rules are matched to schema fields **automatically by name**. No extra configuration per field is needed.
+Rules are matched to fields **automatically by name** — no per-field configuration needed.
 
-| Form Request rule key | Filament field | Match |
+| Form Request key | Filament field | Match type |
 |---|---|---|
 | `email` | `TextInput::make('email')` | Exact |
 | `address.street` | `TextInput::make('address.street')` | Dot notation |
 | `items.*.name` | Repeater child `TextInput::make('name')` | Wildcard |
-| `name` | `TextInput::make('data.name')` | By field name |
+| `created.from` | Filter field `DatePicker::make('from')` in `Filter::make('created')` | Dot notation |
 
-### Repeaters & nested fields
+### State path normalization
 
-Form Requests commonly validate repeater data with wildcard keys:
+Filament uses prefixed state paths internally. The plugin strips these automatically:
 
-```php
-// In your Form Request
-'items.*.name' => ['required', 'string', 'max:255'],
-'items.*.quantity' => ['required', 'integer', 'min:1'],
-```
-
-```php
-// In your Filament schema
-Repeater::make('items')
-    ->schema([
-        TextInput::make('name'),
-        TextInput::make('quantity')->numeric(),
-    ])
-```
-
-The plugin maps `items.*.name` to each repeater item's `name` field automatically.
+| Internal state path | Resolved key |
+|---|---|
+| `data.email` | `email` |
+| `mountedActions.0.data.email` | `email` |
+| `tableDeferredFilters.created.from` | `created.from` |
 
 ## Rule merging
 
-If a field already has Filament validation rules, both sets are merged:
+When a field already has Filament validation rules, both sets are merged:
 
 ```php
 TextInput::make('email')->email()->nullable()
@@ -207,22 +320,15 @@ TextInput::make('email')->email()->nullable()
 
 **Result:** `string`, `required`, `email`, `unique:users`
 
-- Form Request rules take **precedence** when rules conflict (e.g. `nullable` vs. `required`)
+- Form Request rules take **precedence** on conflicts (`nullable` vs. `required`)
 - Identical rules are **deduplicated**
-- Non-conflicting field rules are **kept** (e.g. `string` from `->email()`)
+- Non-conflicting field rules are **kept**
 
 ## Orphan rules
 
-Rules in the Form Request that have no matching schema field are called **orphan rules**. They still run during validation but cannot be displayed on an input.
+Rules without a matching schema field still run on submit. Failures show a **Filament notification** instead of an inline field error.
 
-```php
-// Form Request
-'terms_accepted' => ['accepted'],
-```
-
-If there is no `Checkbox::make('terms_accepted')` in the schema, a failed validation shows a **Filament notification** instead of an inline field error.
-
-**Tip:** Add a matching field (visible or hidden) to show the error inline:
+To show the error on a field, add a matching input (visible or hidden):
 
 ```php
 Checkbox::make('terms_accepted')->label('I accept the terms'),
@@ -231,8 +337,6 @@ Hidden::make('terms_accepted'),
 ```
 
 ## Accessing validated data
-
-After successful validation, use the `InteractsWithFormRequestValidation` trait to retrieve the validated payload:
 
 ```php
 use OccTherapist\FormRequestValidationForFilament\Concerns\InteractsWithFormRequestValidation;
@@ -250,12 +354,10 @@ class CreateUser extends CreateRecord
 }
 ```
 
-`getFormRequestValidated()` runs Laravel's validator with the Form Request's rules against the resolved input — the same data that was used to evaluate dynamic rules.
-
 ## How it works
 
 ```
-Schema::formRequest()
+formRequest() / filtersFormRequest()
         │
         ▼
   Form Request resolved with simulated HTTP request
@@ -265,7 +367,7 @@ Schema::formRequest()
   rules(), messages(), attributes() extracted
         │
         ▼
-  Rules mapped to schema fields (exact + wildcard)
+  Rules mapped to fields (exact + wildcard + state path normalization)
         │
         ▼
   Merged with existing field rules → applied on validation
@@ -274,156 +376,17 @@ Schema::formRequest()
   Orphan rule failures → Filament notification
 ```
 
-1. A hidden validation hook is injected into the schema when `formRequest()` is called.
-2. On each validation, the Form Request is instantiated with a simulated request containing the current form state.
-3. Rules are mapped to fields by name and applied through Filament's native validation pipeline.
-4. Errors appear on the matching input fields; orphan errors trigger a notification.
+## Limitations
 
-## Action modals
-
-Attach a Form Request directly to an action form schema:
-
-```php
-use Filament\Actions\Action;
-
-Action::make('invite')
-    ->schema(fn (Schema $schema) => $schema
-        ->components([
-            TextInput::make('email'),
-            TextInput::make('role'),
-        ])
-        ->formRequest(
-            class: fn () => InviteUserRequest::class,
-        ))
-    ->action(function (array $data): void {
-        // ...
-    });
-```
-
-Action forms use Livewire state paths like `mountedActions.0.data.email` internally — the plugin normalizes these automatically.
-
-## Wizards
-
-Define one Form Request for the entire wizard and attach it to the root schema:
-
-```php
-Wizard::make([
-    Step::make('Account')->schema([
-        TextInput::make('email'),
-    ]),
-    Step::make('Profile')->schema([
-        TextInput::make('name'),
-    ]),
-])
-```
-
-```php
-return $schema
-    ->components([/* wizard */])
-    ->formRequest(class: fn () => StoreUserRequest::class);
-```
-
-On each step, **only the fields in the active step** are validated. Rules for later steps are ignored until the full form is submitted.
-
-If your Form Request needs data from other steps during validation, use `mergeInput`:
-
-```php
-->formRequest(
-    class: fn () => StoreUserRequest::class,
-    mergeInput: fn (array $state, Component $livewire): array => [
-        ...($livewire->data ?? []),
-        ...$state,
-    ],
-)
-```
-
-## Relation managers
-
-Relation manager create/edit actions use the same schema API as resource pages:
-
-```php
-class PostsRelationManager extends RelationManager
-{
-    public function form(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                TextInput::make('title'),
-            ])
-            ->formRequest(
-                class: fn () => $this->getOwnerRecord()->exists
-                    ? UpdatePostRequest::class
-                    : StorePostRequest::class,
-            );
-    }
-}
-```
-
-For modal actions on the relation manager table, attach `formRequest()` inside the action schema callback.
-
-## Table filters
-
-Attach a Form Request to your table filters using `filtersFormRequest()` on the table configuration:
-
-```php
-use Filament\Tables\Table;
-
-public function table(Table $table): Table
-{
-    return $table
-        ->filters([
-            Filter::make('created')
-                ->schema([
-                    DatePicker::make('from'),
-                    DatePicker::make('until'),
-                ]),
-        ])
-        ->filtersFormRequest(
-            class: fn () => FilterCustomersRequest::class,
-        );
-}
-```
-
-```php
-// app/Http/Requests/FilterCustomersRequest.php
-public function rules(): array
-{
-    return [
-        'created.from' => ['nullable', 'date'],
-        'created.until' => ['nullable', 'date', 'after_or_equal:created.from'],
-    ];
-}
-```
-
-Filter fields use state paths like `tableDeferredFilters.{filterName}.{field}` — the plugin normalizes these automatically.
-
-- **Deferred filters** (default): validation runs when the user clicks **Apply**
-- **Live filters** (`->deferFilters(false)`): validation runs when filter values change
-
-## What is not supported (yet)
-
-The following Form Request features are **not** part of v1:
-
-| Feature | Status |
+| Form Request feature | Status |
 |---|---|
 | `rules()` | Supported |
 | `messages()` | Supported |
 | `attributes()` | Supported |
-| `authorize()` | Not supported — use Filament policies instead |
+| `authorize()` | Not supported — use Filament policies |
 | `prepareForValidation()` | Not supported |
 | `withValidator()` | Not supported |
 | `passedValidation()` / `failedValidation()` | Not supported |
-
-## Supported contexts
-
-| Context | Version |
-|---|---|
-| Resource Create / Edit pages | v1.0 |
-| Standalone forms / Settings pages | v1.0 |
-| Action modals | v1.1 |
-| Wizards (per-step validation) | v1.1 |
-| Relation managers | v1.1 |
-| Table filters | v1.2 |
 
 ## Testing
 
