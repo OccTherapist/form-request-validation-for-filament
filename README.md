@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://github.com/OccTherapist/form-request-validation-for-filament)
 
-![Form Request Validation for Filament](thumbnail.jpg)
+<img src="thumbnail.jpg" alt="Form Request Validation for Filament" class="filament-hidden">
 
 Use Laravel [Form Request](https://laravel.com/docs/validation#form-request-validation) validation inside Filament — define your rules, messages, and attributes once, reuse them across API routes, controllers, and Filament UI.
 
