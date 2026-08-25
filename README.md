@@ -2,6 +2,7 @@
 
 [![Latest Version on Packagist](https://img.shields.io/github/v/release/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
 [![Total Downloads](https://img.shields.io/packagist/dt/occ-therapist/form-request-validation-for-filament?style=flat-square)](https://packagist.org/packages/occ-therapist/form-request-validation-for-filament)
+[![Tests](https://img.shields.io/github/actions/workflow/status/OccTherapist/form-request-validation-for-filament/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/OccTherapist/form-request-validation-for-filament/actions)
 [![License](https://img.shields.io/github/license/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/OccTherapist/form-request-validation-for-filament?style=flat-square)](https://github.com/OccTherapist/form-request-validation-for-filament)
 
@@ -17,7 +18,7 @@ This plugin bridges that gap: attach a Form Request to your schema or table filt
 
 ## Features
 
-- **Form Request integration** — `rules()`, `messages()`, and `attributes()`
+- **Form Request integration** — `rules()`, `messages()`, `attributes()`, and `prepareForValidation()`
 - **Automatic field mapping** — by field name, dot notation, and wildcards (`items.*.name`)
 - **Array & pipe syntax** — `'email' => ['required', 'email']` and `'email' => 'required|email'`
 - **Context-aware** — different Form Requests per page via callback (create vs. edit)
@@ -162,6 +163,22 @@ $schema->formRequest(
 ```
 
 Useful when Form Requests depend on record data, route parameters, or values not visible in the form.
+
+#### `prepareForValidation()`
+
+Runs on the simulated Form Request **before** `rules()` are read. Use it to normalize or enrich input that `rules()` (or `getFormRequestValidated()`) depends on:
+
+```php
+protected function prepareForValidation(): void
+{
+    $this->merge([
+        'slug' => str($this->input('title'))->slug()->toString(),
+        'type' => strtolower((string) $this->input('type')),
+    ]);
+}
+```
+
+Prepared input is stored for `getFormRequestValidated()`. Filament still validates the visible form state against the extracted rules — transforms here do **not** rewrite Livewire field values.
 
 ### `Table::filtersFormRequest()`
 
@@ -364,6 +381,9 @@ formRequest() / filtersFormRequest()
   (form state + optional mergeInput + route parameters)
         │
         ▼
+  prepareForValidation() runs (merge / normalize input)
+        │
+        ▼
   rules(), messages(), attributes() extracted
         │
         ▼
@@ -383,9 +403,9 @@ formRequest() / filtersFormRequest()
 | `rules()` | Supported |
 | `messages()` | Supported |
 | `attributes()` | Supported |
+| `prepareForValidation()` | Supported — runs before `rules()`; prepared input used by `getFormRequestValidated()` (does not rewrite Livewire field values) |
 | `authorize()` | Not supported — use Filament policies |
-| `prepareForValidation()` | Not supported |
-| `withValidator()` | Not supported |
+| `withValidator()` | Not supported — Filament owns the validator lifecycle |
 | `passedValidation()` / `failedValidation()` | Not supported |
 
 ## Testing

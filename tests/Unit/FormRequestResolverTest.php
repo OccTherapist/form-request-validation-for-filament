@@ -33,6 +33,26 @@ class StorePostRequest extends FormRequest
     }
 }
 
+class PrepareForValidationRequest extends FormRequest
+{
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'type' => strtolower((string) $this->input('type')),
+            'slug' => str($this->input('title'))->slug()->toString(),
+        ]);
+    }
+
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string'],
+            'type' => ['required', 'in:draft,published'],
+            'slug' => ['required', 'alpha_dash'],
+        ];
+    }
+}
+
 function createHasSchemasLivewire(): Component&HasSchemas
 {
     /** @var Component&HasSchemas $livewire */
@@ -70,6 +90,46 @@ it('resolves rules messages and attributes from a form request', function () {
     expect($resolved->matchedRules['data.title'])->toBe(['required', 'string'])
         ->and($resolved->messages['data.title.required'])->toBe('Title is required.')
         ->and($resolved->attributes['data.title'])->toBe('headline');
+});
+
+it('runs prepareForValidation before extracting rules and stores prepared input', function () {
+    $livewire = createHasSchemasLivewire();
+
+    /** @var MockInterface&\Filament\Schemas\Schema $schema */
+    $schema = Mockery::mock(\Filament\Schemas\Schema::class);
+    $schema->shouldReceive('getLivewire')->andReturn($livewire);
+    $schema->shouldReceive('getStateSnapshot')->andReturn([
+        'title' => 'Hello World',
+        'type' => 'DRAFT',
+    ]);
+
+    $config = new FormRequestConfig(
+        class: fn (): string => PrepareForValidationRequest::class,
+    );
+
+    $fieldCollector = Mockery::mock(\OccTherapist\FormRequestValidationForFilament\FieldCollector::class);
+    $fieldCollector->shouldReceive('collectStatePaths')->with($schema)->andReturn([
+        'data.title',
+        'data.type',
+        'data.slug',
+    ]);
+
+    $resolver = new FormRequestResolver(
+        new FakeRequestBuilder,
+        app(\OccTherapist\FormRequestValidationForFilament\RuleMapper::class),
+        $fieldCollector,
+    );
+
+    $resolved = $resolver->resolve($schema, $config);
+
+    expect($resolved->matchedRules['data.type'])->toBe(['required', 'in:draft,published'])
+        ->and($resolved->matchedRules['data.slug'])->toBe(['required', 'alpha_dash'])
+        ->and(\OccTherapist\FormRequestValidationForFilament\FormRequestSchemaRegistry::getResolvedInput($livewire))
+        ->toMatchArray([
+            'title' => 'Hello World',
+            'type' => 'draft',
+            'slug' => 'hello-world',
+        ]);
 });
 
 it('builds a fake request with route parameters from a record', function () {

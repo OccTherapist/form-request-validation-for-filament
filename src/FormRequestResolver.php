@@ -2,7 +2,6 @@
 
 namespace OccTherapist\FormRequestValidationForFilament;
 
-use Filament\Forms\Components\Contracts\HasValidationRules;
 use Filament\Schemas\Schema;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
@@ -22,6 +21,8 @@ class FormRequestResolver
         $livewire = $schema->getLivewire();
         $input = $this->resolveInput($schema, $config, $livewire);
         $formRequest = $this->createFormRequest($config, $livewire, $input);
+        $this->prepareFormRequest($formRequest);
+        $input = $formRequest->all();
 
         FormRequestSchemaRegistry::setResolvedFormRequest($livewire, $formRequest, $input);
 
@@ -71,6 +72,12 @@ class FormRequestResolver
         $formRequest = $class::createFrom($request)->setContainer(app());
 
         return $formRequest;
+    }
+
+    protected function prepareFormRequest(FormRequest $formRequest): void
+    {
+        $method = new \ReflectionMethod($formRequest, 'prepareForValidation');
+        $method->invoke($formRequest);
     }
 
     /**
