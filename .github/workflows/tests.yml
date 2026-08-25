@@ -59,7 +59,7 @@ jobs:
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
       - name: List installed versions
-        run: composer show laravel/framework filament/filament orchestra/testbench pestphp/pest
+        run: composer show -D | grep -E 'laravel/framework|filament/filament|orchestra/testbench|pestphp/pest'
 
       - name: Run tests
         run: vendor/bin/pest --ci
