@@ -45,7 +45,7 @@ This plugin bridges that gap: attach a Form Request to your schema or table filt
 | Dependency | Version |
 |---|---|
 | PHP | 8.2+ |
-| Laravel | 11, 12, or 13 |
+| Laravel | 12 or 13 |
 | Filament | 4.x or 5.x |
 
 ## Installation
